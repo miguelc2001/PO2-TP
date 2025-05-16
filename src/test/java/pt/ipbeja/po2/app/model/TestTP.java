@@ -45,7 +45,7 @@ public class TestTP {
     }
 
     @Test
-    public void testCreateBigSnowball2() {
+    public void testMaintainBigSnowball() {
         Position position = new Position(3, 3);
         Snowball snowball = new Snowball(position, SnowballSize.BIG);
 

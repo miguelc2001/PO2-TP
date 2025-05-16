@@ -1,10 +1,10 @@
 package pt.ipbeja.app.model;
 
-public class Monster {
-    private final Position position;
+
+public class Monster extends MobileElement {
 
     public Monster(Position position) {
-        this.position = position;
+        super(position);
     }
 
     public void move(Direction direction) {

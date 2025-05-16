@@ -1,12 +1,11 @@
 package pt.ipbeja.app.model;
 
-public class Snowball {
+public class Snowball extends MobileElement {
 
     private SnowballSize size;
-    private final Position position;
 
     public Snowball(Position position, SnowballSize size) {
-        this.position = position;
+        super(position);
         this.size = size;
     }
 
@@ -19,24 +18,45 @@ public class Snowball {
     }
 
     public void stack(Snowball other) {
-        if (this.size == SnowballSize.AVERAGE && other.size == SnowballSize.BIG) {
-            this.size = SnowballSize.BIG_AVERAGE;
-        } else if (this.size == SnowballSize.SMALL && other.size == SnowballSize.BIG) {
-            this.size = SnowballSize.BIG_SMALL;
-        } else if (this.size == SnowballSize.SMALL && other.size == SnowballSize.AVERAGE) {
-            this.size = SnowballSize.AVERAGE_SMALL;
-        } else if (this.size == SnowballSize.SMALL && other.size == SnowballSize.BIG_AVERAGE) {
-            this.size = SnowballSize.BIG_AVERAGE_SMALL; // Snowman completo
+        if (!canReceive(other)) return;
+
+        switch (this.size) {
+            case BIG -> {
+                if (other.size == SnowballSize.AVERAGE) {
+                    size = SnowballSize.BIG_AVERAGE;
+                } else if (other.size == SnowballSize.SMALL) {
+                    size = SnowballSize.BIG_SMALL;
+                }
+            }
+            case AVERAGE -> {
+                if (other.size == SnowballSize.SMALL) {
+                    size = SnowballSize.AVERAGE_SMALL;
+                }
+            }
+            case BIG_AVERAGE -> {
+                if (other.size == SnowballSize.SMALL) {
+                    size = SnowballSize.BIG_AVERAGE_SMALL; // Snowman completo
+                }
+            }
         }
     }
 
-    public Position getPosition() {
-        return position;
+    public boolean canReceive(Snowball other) {
+        switch (this.size) {
+            case BIG -> {
+                return other.size == SnowballSize.AVERAGE || other.size == SnowballSize.SMALL;
+            }
+            case AVERAGE, BIG_AVERAGE -> {
+                return other.size == SnowballSize.SMALL;
+            }
+            default -> {
+                return false;
+            }
+        }
     }
 
     public SnowballSize getSize() {
         return size;
     }
-
 
 }
