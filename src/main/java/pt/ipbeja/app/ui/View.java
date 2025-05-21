@@ -30,7 +30,7 @@ public class View extends VBox implements ViewObserver {
         moveHistory.setPrefHeight(100);
 
         this.setOnKeyPressed(event -> {
-            System.out.println("Tecla: " + event.getCode());
+//            System.out.println("Tecla: " + event.getCode());
 
             if (event.getCode() == KeyCode.UP) model.moveMonster(Direction.UP);
             if (event.getCode() == KeyCode.DOWN) model.moveMonster(Direction.DOWN);
@@ -49,11 +49,13 @@ public class View extends VBox implements ViewObserver {
 
         // Definir o layout do tabuleiro com base em símbolos
         String[] layout = {
-                "._.__",
-                "_o.o_",
-                "_.M._",
-                "_.oo_",
-                "_._._"
+                "+++++++",
+                "++_._++",
+                "+_o.o_+",
+                "+_.M._+",
+                "+_.oo_+",
+                "+_._._+",
+                "+++++++"
         };
 
         List<Snowball> snowballs = new ArrayList<>();
@@ -155,6 +157,11 @@ public class View extends VBox implements ViewObserver {
     @Override
     public void gameOver() {
         Platform.runLater(() -> {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Fim do Jogo");
             alert.setHeaderText("Parabéns! Construíste o boneco de neve completo!");

@@ -1,5 +1,6 @@
 package pt.ipbeja.app.model;
 
+import javafx.application.Platform;
 import pt.ipbeja.app.ui.ViewObserver;
 
 import java.util.List;

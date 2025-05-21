@@ -57,10 +57,10 @@ public class TestTP {
     @Test
     public void testAverageBigSnowball() {
         Position position = new Position(3, 3);
-        Snowball snowball = new Snowball(position, SnowballSize.AVERAGE);
+        Snowball snowball = new Snowball(position, SnowballSize.BIG);
 
         Position position2 = new Position(3, 4);
-        Snowball snowball2 = new Snowball(position2, SnowballSize.BIG);
+        Snowball snowball2 = new Snowball(position2, SnowballSize.AVERAGE);
 
         snowball.stack(snowball2);
 
@@ -71,10 +71,10 @@ public class TestTP {
     @Test
     public void testCompleteSnowman() {
         Position position = new Position(3, 3);
-        Snowball snowball = new Snowball(position, SnowballSize.SMALL);
+        Snowball snowball = new Snowball(position, SnowballSize.BIG_AVERAGE);
 
         Position position2 = new Position(3, 4);
-        Snowball snowball2 = new Snowball(position2, SnowballSize.BIG_AVERAGE);
+        Snowball snowball2 = new Snowball(position2, SnowballSize.SMALL);
 
         snowball.stack(snowball2);
 
