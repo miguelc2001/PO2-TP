@@ -2,15 +2,27 @@ package pt.ipbeja.app.ui;
 
 import javafx.application.Platform;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import pt.ipbeja.app.model.*;
 
+import javafx.scene.image.ImageView;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import javax.sound.sampled.*;
+
+
 
 public class View extends VBox implements ViewObserver {
 
@@ -18,6 +30,8 @@ public class View extends VBox implements ViewObserver {
     private Label monsterLabel;
     private GridPane boardPane = new GridPane();
     private TextArea moveHistory = new TextArea();
+
+    private final int CELL_SIZE = 64;
 
 
     public View() {
@@ -40,6 +54,7 @@ public class View extends VBox implements ViewObserver {
         });
 
         drawBoard();
+        playWavLoop();
 
         this.getChildren().addAll(boardPane, moveHistory);
     }
@@ -49,13 +64,13 @@ public class View extends VBox implements ViewObserver {
 
         // Definir o layout do tabuleiro com base em símbolos
         String[] layout = {
-                "+++++++",
-                "++_._++",
-                "+_o.o_+",
-                "+_.M._+",
-                "+_.oo_+",
-                "+_._._+",
-                "+++++++"
+                "+++++++++",
+                "+_______+",
+                "+_____o_+",
+                "+_o_____+",
+                "+_____o_+",
+                "+_______+",
+                "+++++++++"
         };
 
         List<Snowball> snowballs = new ArrayList<>();
@@ -84,9 +99,9 @@ public class View extends VBox implements ViewObserver {
             board.add(rowContent);
         }
 
-        // Se não definiste o monstro, põe no centro por defeito
+
         if (monster == null) {
-            monster = new Monster(new Position(2, 2));
+            monster = new Monster(new Position(board.size() / 2, board.get(0).size() / 2));
         }
 
         return new BoardModel(board, monster, snowballs);
@@ -102,7 +117,7 @@ public class View extends VBox implements ViewObserver {
         // Letras no topo das colunas
         for (int col = 0; col < cols; col++) {
             Label colLabel = new Label(String.valueOf((char) ('A' + col)));
-            colLabel.setMinSize(30, 30);
+            colLabel.setMinSize(CELL_SIZE, CELL_SIZE);
             colLabel.setStyle("-fx-font-weight: bold; -fx-alignment: center;");
             boardPane.add(colLabel, col + 1, 0); // colunas começam na coluna 1
         }
@@ -110,7 +125,7 @@ public class View extends VBox implements ViewObserver {
         // Números no início das linhas
         for (int row = 0; row < rows; row++) {
             Label rowLabel = new Label(String.valueOf(row));
-            rowLabel.setMinSize(30, 30);
+            rowLabel.setMinSize(CELL_SIZE, CELL_SIZE);
             rowLabel.setStyle("-fx-font-weight: bold; -fx-alignment: center;");
             boardPane.add(rowLabel, 0, row + 1); // linhas começam na linha 1
         }
@@ -119,37 +134,31 @@ public class View extends VBox implements ViewObserver {
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
                 Position pos = new Position(row, col);
-                Label label = new Label();
-                label.setMinSize(30, 30);
-                label.setStyle("-fx-border-color: gray; -fx-alignment: center;");
-                label.setFont(Font.font(20));
+                ImageView baseImage = new ImageView(getTileImage(pos));
+                baseImage.setFitWidth(CELL_SIZE);
+                baseImage.setFitHeight(CELL_SIZE);
+
+                StackPane cell = new StackPane();
+                cell.getChildren().add(baseImage);
 
                 Snowball snowball = model.getSnowball(pos);
                 Position monsterPos = model.getMonster().getPosition();
 
                 if (monsterPos.equals(pos)) {
-                    label.setText("M");
-                } else if (snowball != null) {
-                    label.setText(switch (snowball.getSize()) {
-                        case SMALL -> "s";
-                        case AVERAGE -> "m";
-                        case BIG -> "b";
-                        case BIG_AVERAGE -> "B+M";
-                        case BIG_AVERAGE_SMALL -> "☃";
-                        case BIG_SMALL -> "B+S";
-                        case AVERAGE_SMALL -> "M+S";
-                    });
-                } else {
-                    PositionContent content = model.getPositionContent(pos);
-                    label.setText(switch (content) {
-                        case SNOW -> "_";
-                        case NO_SNOW -> ".";
-                        case BLOCK -> "+";
-                        case SNOWMAN -> "☃";
-                    });
+                    ImageView monster = new ImageView(load("monster.png"));
+                    monster.setFitWidth(CELL_SIZE);
+                    monster.setFitHeight(CELL_SIZE);
+                    cell.getChildren().add(monster);
                 }
 
-                boardPane.add(label, col + 1, row + 1); // tabuleiro começa em (1,1)
+                else if (snowball != null) {
+                    ImageView ball = new ImageView(getBallImage(snowball.getSize()));
+                    ball.setFitWidth(CELL_SIZE);
+                    ball.setFitHeight(CELL_SIZE);
+                    cell.getChildren().add(ball);
+                }
+
+                boardPane.add(cell, col + 1, row + 1); // tabuleiro começa em (1,1)
             }
         }
     }
@@ -157,11 +166,6 @@ public class View extends VBox implements ViewObserver {
     @Override
     public void gameOver() {
         Platform.runLater(() -> {
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Fim do Jogo");
             alert.setHeaderText("Parabéns! Construíste o boneco de neve completo!");
@@ -207,4 +211,81 @@ public class View extends VBox implements ViewObserver {
 
         moveHistory.appendText(moveText + "\n");
     }
+
+    private Image load(String name) {
+        return new Image(getClass().getResourceAsStream("/images/" + name));
+    }
+
+    private Image getTileImage(Position pos) {
+        return switch (model.getPositionContent(pos)) {
+            case SNOW -> load("SNOW.png");
+            case NO_SNOW -> load("NO_SNOW.png");
+            case BLOCK -> load("BLOCK.png");
+            case SNOWMAN -> load("SNOWMAN.png");
+        };
+    }
+
+    private Image getBallImage(SnowballSize size) {
+        return switch (size) {
+            case SMALL -> load("SMALL.png");
+            case AVERAGE -> load("AVERAGE.png");
+            case BIG -> load("BIG.png");
+            case BIG_AVERAGE -> load("BIG_AVERAGE.png");
+            case BIG_SMALL -> load("BIG_SMALL.png");
+            case AVERAGE_SMALL -> load("AVERAGE_SMALL.png");
+            case BIG_AVERAGE_SMALL -> load("SNOWMAN.png");
+        };
+    }
+
+    public void saveToFile(Position snowmanPosition) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        String timestamp = LocalDateTime.now().format(formatter);
+        String fileName = "snowman" + timestamp + ".txt";
+
+        try (PrintWriter writer = new PrintWriter(fileName)) {
+            // 1. Mapa utilizado
+            writer.println("Mapa:");
+            for (List<PositionContent> row : model.getBoard()) {
+                for (PositionContent pc : row) {
+                    writer.print(switch (pc) {
+                        case SNOW -> "_";
+                        case NO_SNOW -> ".";
+                        case BLOCK -> "+";
+                        case SNOWMAN -> "☃";
+                    });
+                }
+                writer.println();
+            }
+
+            // 2. Conteúdo do painel de jogadas
+            writer.println("\nJogadas:");
+            writer.println(moveHistory.getText());
+
+            // 3. Quantidade de movimentos
+            long totalMoves = moveHistory.getText().lines().count();
+            writer.println("Total de movimentos: " + totalMoves);
+
+            // 4. Posição do boneco de neve
+            writer.println("Boneco criado em: (" + snowmanPosition.getRow() + ", " + (char)('A' + snowmanPosition.getCol()) + ")");
+
+            System.out.println("Ficheiro gravado: " + fileName);
+        } catch (IOException e) {
+            System.err.println("Erro a gravar o ficheiro: " + e.getMessage());
+        }
+    }
+
+    public void playWavLoop() {
+        try {
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(
+                    getClass().getResource("/audio/song.wav"));
+
+            Clip clip = AudioSystem.getClip();
+            clip.open(audioStream);
+            clip.loop(Clip.LOOP_CONTINUOUSLY);
+            clip.start();
+        } catch (Exception e) {
+            System.err.println("Erro ao tocar música: " + e.getMessage());
+        }
+    }
+
 }

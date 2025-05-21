@@ -1,6 +1,7 @@
 package pt.ipbeja.app.model;
 
 import javafx.application.Platform;
+import pt.ipbeja.app.ui.View;
 import pt.ipbeja.app.ui.ViewObserver;
 
 import java.util.List;
@@ -44,7 +45,15 @@ public class BoardModel {
                     snowball1.stack(snowball);
                     if (snowball1.getSize() == SnowballSize.BIG_AVERAGE_SMALL) {
                         board.get(newPosition.getRow()).set(newPosition.getCol(), PositionContent.SNOWMAN);
-                        notifyGameEnd();
+                        if (snowball1.getSize() == SnowballSize.BIG_AVERAGE_SMALL) {
+                            board.get(newPosition.getRow()).set(newPosition.getCol(), PositionContent.SNOWMAN);
+
+                            if (viewObserver != null) {
+                                ((View) viewObserver).saveToFile(newPosition);
+                                viewObserver.gameOver();
+                            }
+                        }
+
                     }
                     snowballs.remove(snowball);
                 }
@@ -54,6 +63,7 @@ public class BoardModel {
                 snowball.setPosition(newPosition);
                 if (getPositionContent(newPosition) == PositionContent.SNOW) {
                     snowball.grow();
+                    board.get(newPosition.getRow()).set(newPosition.getCol(), PositionContent.NO_SNOW);
                 }
             }
 
