@@ -31,6 +31,11 @@ public class BoardModel {
 
         Snowball snowball = getSnowball(targetPosition);
 
+        if (snowball != null && snowball.isStacked()) {
+            return; // não permite empurrar bolas empilhadas
+        }
+
+
         if (snowball != null) {
             Position newPosition = targetPosition.newPosition(direction);
 
@@ -81,12 +86,6 @@ public class BoardModel {
         this.viewObserver = viewObserver;
     }
 
-    private void notifyGameEnd() {
-        if (viewObserver != null) {
-            viewObserver.gameOver();
-        }
-    }
-
     public boolean outOfBounds(Position position) {
         return position.getRow() < 0 || position.getRow() >= board.size() || position.getCol() < 0 || position.getCol() >= board.get(0).size();
     }
@@ -95,6 +94,8 @@ public class BoardModel {
         PositionContent content = getPositionContent(position);
         return content == PositionContent.BLOCK;
     }
+
+
 
     public Snowball getSnowball(Position position) {
         for (Snowball snowball : snowballs) {

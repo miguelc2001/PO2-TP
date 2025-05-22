@@ -41,6 +41,13 @@ public class Snowball extends MobileElement {
         }
     }
 
+    public boolean isStacked() {
+        return switch (this.size) {
+            case BIG_AVERAGE, BIG_SMALL, AVERAGE_SMALL, BIG_AVERAGE_SMALL -> true;
+            default -> false;
+        };
+    }
+
     public boolean canReceive(Snowball other) {
         switch (this.size) {
             case BIG -> {

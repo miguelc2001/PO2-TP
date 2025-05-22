@@ -30,6 +30,8 @@ public class View extends VBox implements ViewObserver {
     private Label monsterLabel;
     private GridPane boardPane = new GridPane();
     private TextArea moveHistory = new TextArea();
+    private Clip music;
+
 
     private final int CELL_SIZE = 64;
 
@@ -54,7 +56,7 @@ public class View extends VBox implements ViewObserver {
         });
 
         drawBoard();
-        playWavLoop();
+        playBackgroundMusic();
 
         this.getChildren().addAll(boardPane, moveHistory);
     }
@@ -165,6 +167,7 @@ public class View extends VBox implements ViewObserver {
 
     @Override
     public void gameOver() {
+        music.stop();
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Fim do Jogo");
@@ -274,15 +277,15 @@ public class View extends VBox implements ViewObserver {
         }
     }
 
-    public void playWavLoop() {
+    public void playBackgroundMusic() {
         try {
             AudioInputStream audioStream = AudioSystem.getAudioInputStream(
                     getClass().getResource("/audio/song.wav"));
 
-            Clip clip = AudioSystem.getClip();
-            clip.open(audioStream);
-            clip.loop(Clip.LOOP_CONTINUOUSLY);
-            clip.start();
+            music = AudioSystem.getClip();
+            music.open(audioStream);
+            music.loop(Clip.LOOP_CONTINUOUSLY);
+            music.start();
         } catch (Exception e) {
             System.err.println("Erro ao tocar música: " + e.getMessage());
         }
