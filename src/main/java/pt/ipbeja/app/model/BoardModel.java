@@ -4,13 +4,19 @@ import javafx.application.Platform;
 import pt.ipbeja.app.ui.View;
 import pt.ipbeja.app.ui.ViewObserver;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 
 public class BoardModel {
-    private final List<List<PositionContent>> board;
+    private List<List<PositionContent>> board;
     private final List<Snowball> snowballs;
     private final Monster monster;
     private ViewObserver viewObserver;
+
+    private final Deque<SaveBoard> undoStack = new ArrayDeque<>();
+    private final Deque<SaveBoard> redoStack = new ArrayDeque<>();
+
 
     public BoardModel(List<List<PositionContent>> board, Monster monster, List<Snowball> snowballs) {
         this.board = board;
@@ -19,6 +25,11 @@ public class BoardModel {
     }
 
     public void moveMonster(Direction direction) {
+
+        // Save current board
+        saveSnapshot();
+
+
         // Get the current position of the monster
         Position monsterPosition = monster.getPosition();
         Position targetPosition = monsterPosition.newPosition(direction);
@@ -31,9 +42,43 @@ public class BoardModel {
 
         Snowball snowball = getSnowball(targetPosition);
 
-        if (snowball != null && snowball.isStacked()) {
-            return; // não permite empurrar bolas empilhadas
+//        if (snowball != null && snowball.isStacked()) {
+//            return; // não permite empurrar bolas empilhadas
+//        }
+
+        if (snowball != null) {
+            SnowballSize size = snowball.getSize();
+
+            // Trata os casos em que só o topo pode ser empurrado
+            if (size == SnowballSize.BIG_SMALL || size == SnowballSize.AVERAGE_SMALL || size == SnowballSize.BIG_AVERAGE) {
+                Position newPos = targetPosition.newPosition(direction);
+                if (outOfBounds(newPos) || isBlocked(newPos) || getSnowball(newPos) != null) return;
+
+                SnowballSize top = switch (size) {
+                    case BIG_SMALL, AVERAGE_SMALL -> SnowballSize.SMALL;
+                    case BIG_AVERAGE -> SnowballSize.AVERAGE;
+                    default -> throw new IllegalStateException("Unexpected size");
+                };
+
+                SnowballSize base = switch (size) {
+                    case BIG_SMALL, BIG_AVERAGE -> SnowballSize.BIG;
+                    case AVERAGE_SMALL -> SnowballSize.AVERAGE;
+                    default -> throw new IllegalStateException("Unexpected size");
+                };
+
+                Snowball topBall = new Snowball(newPos, top);
+                if (getPositionContent(newPos) == PositionContent.SNOW) {
+                    topBall.grow();
+                    board.get(newPos.getRow()).set(newPos.getCol(), PositionContent.NO_SNOW);
+                }
+
+                snowball.setSize(base);
+                snowballs.add(topBall);
+
+                return;
+            }
         }
+
 
 
         if (snowball != null) {
@@ -95,6 +140,41 @@ public class BoardModel {
         return content == PositionContent.BLOCK;
     }
 
+    private void saveSnapshot() {
+        undoStack.push(new SaveBoard(board, snowballs, monster.getPosition()));
+        redoStack.clear(); // limpa o histórico de redo ao fazer nova jogada
+    }
+
+    public void undo() {
+        if (undoStack.isEmpty()) return;
+
+        redoStack.push(new SaveBoard(board, snowballs, monster.getPosition()));
+
+        SaveBoard snapshot = undoStack.pop();
+        restoreSnapshot(snapshot);
+    }
+
+    public void redo() {
+        if (redoStack.isEmpty()) return;
+
+        undoStack.push(new SaveBoard(board, snowballs, monster.getPosition()));
+
+        SaveBoard snapshot = redoStack.pop();
+        restoreSnapshot(snapshot);
+    }
+
+    private void restoreSnapshot(SaveBoard snapshot) {
+        this.board = snapshot.getBoard();
+        this.snowballs.clear();
+        this.snowballs.addAll(snapshot.getSnowballs());
+        this.monster.setPosition(snapshot.getMonsterPosition());
+
+        if (viewObserver != null) {
+            viewObserver.modelUpdated(); // chama drawBoard() na View
+        }
+    }
+
+
 
 
     public Snowball getSnowball(Position position) {
@@ -120,4 +200,7 @@ public class BoardModel {
     public List<List<PositionContent>> getBoard() {
         return board;
     }
+
+
+
 }

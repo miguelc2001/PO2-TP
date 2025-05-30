@@ -1,10 +1,12 @@
 package pt.ipbeja.app.ui;
 
 import javafx.application.Platform;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
@@ -15,9 +17,12 @@ import javafx.scene.image.ImageView;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import javax.sound.sampled.*;
@@ -32,12 +37,21 @@ public class View extends VBox implements ViewObserver {
     private TextArea moveHistory = new TextArea();
     private Clip music;
 
+    private String playerName;
+    private final String levelName = "Nível 1"; // por agora, hardcoded
+
+    VBox scorePanel = new VBox();
+
 
     private final int CELL_SIZE = 64;
 
 
     public View() {
-        this.model = createSampleModel();
+
+        this.playerName = askPlayerName();
+
+
+        this.model = createBoard();
         this.model.setViewObserver(this);
         this.setFocusTraversable(true);
         this.setSpacing(10);
@@ -52,25 +66,33 @@ public class View extends VBox implements ViewObserver {
             if (event.getCode() == KeyCode.DOWN) model.moveMonster(Direction.DOWN);
             if (event.getCode() == KeyCode.LEFT) model.moveMonster(Direction.LEFT);
             if (event.getCode() == KeyCode.RIGHT) model.moveMonster(Direction.RIGHT);
+            if (event.getCode() == KeyCode.Z) model.undo();
+            if (event.getCode() == KeyCode.Y) model.redo();
+
             drawBoard();
         });
 
         drawBoard();
         playBackgroundMusic();
 
-        this.getChildren().addAll(boardPane, moveHistory);
+        HBox layout = new HBox();
+        layout.getChildren().addAll(boardPane, scorePanel);
+        this.getChildren().addAll(layout, moveHistory);
+
+
+//        this.getChildren().addAll(boardPane, moveHistory);
     }
 
-    private BoardModel createSampleModel() {
+    private BoardModel createBoard(/*TODO: String layout*/) {
         List<List<PositionContent>> board = new ArrayList<>();
 
         // Definir o layout do tabuleiro com base em símbolos
         String[] layout = {
                 "+++++++++",
+                "+_....._+",
                 "+_______+",
-                "+_____o_+",
-                "+_o_____+",
-                "+_____o_+",
+                "+_s._a__+",
+                "+_____s_+",
                 "+_______+",
                 "+++++++++"
         };
@@ -87,9 +109,17 @@ public class View extends VBox implements ViewObserver {
                 switch (tile) {
                     case '_' -> rowContent.add(PositionContent.SNOW);
                     case '+' -> rowContent.add(PositionContent.BLOCK);
-                    case 'o' -> {
-                        rowContent.add(PositionContent.NO_SNOW); // o chão da bola
+                    case 's' -> {
+                        rowContent.add(PositionContent.NO_SNOW);
                         snowballs.add(new Snowball(pos, SnowballSize.SMALL));
+                    }
+                    case 'a' -> {
+                        rowContent.add(PositionContent.NO_SNOW);
+                        snowballs.add(new Snowball(pos, SnowballSize.AVERAGE));
+                    }
+                    case 'b' -> {
+                        rowContent.add(PositionContent.NO_SNOW);
+                        snowballs.add(new Snowball(pos, SnowballSize.BIG));
                     }
                     case 'M' -> {
                         rowContent.add(PositionContent.NO_SNOW);
@@ -167,6 +197,11 @@ public class View extends VBox implements ViewObserver {
 
     @Override
     public void gameOver() {
+
+        int moveCount = (int) moveHistory.getText().lines().count();
+        Score currentScore = new Score(playerName, levelName, moveCount);
+        updateScorePanel(currentScore);
+
         music.stop();
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -193,16 +228,18 @@ public class View extends VBox implements ViewObserver {
     }
 
     private void restartCurrentLevel() {
-        this.model = createSampleModel();
+        this.model = createBoard();
         this.model.setViewObserver(this);
         drawBoard();
+        playBackgroundMusic();
     }
 
     private void loadNextLevel() {
         // TODO: PROXIMO NÍVEL
-        this.model = createSampleModel();
+        this.model = createBoard();
         this.model.setViewObserver(this);
         drawBoard();
+        playBackgroundMusic();
     }
 
     @Override
@@ -290,5 +327,78 @@ public class View extends VBox implements ViewObserver {
             System.err.println("Erro ao tocar música: " + e.getMessage());
         }
     }
+
+    private String askPlayerName() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Nome do Jogador");
+        dialog.setHeaderText("Introduz o teu nome (máx. 3 caracteres):");
+        dialog.setContentText("Nome:");
+
+        Optional<String> result = dialog.showAndWait();
+        return result.map(s -> s.length() > 3 ? s.substring(0, 3) : s).orElse("???");
+    }
+
+    private void updateScorePanel(Score currentScore) {
+        List<Score> topScores = loadScores();
+        topScores.add(currentScore);
+        topScores.sort(Comparator.naturalOrder());
+
+        if (topScores.size() > 3) {
+            topScores = topScores.subList(0, 3);
+        }
+
+        saveScores(topScores);
+
+        scorePanel.getChildren().clear();
+        scorePanel.getChildren().add(new Label("Pontuação atual:"));
+        for (Score s : topScores) {
+            String text = s.toString();
+            if (s.getPlayerName().equals(currentScore.getPlayerName())
+                    && s.getMoves() == currentScore.getMoves()) {
+                text += "  TOP";
+            }
+            scorePanel.getChildren().add(new Label(text));
+        }
+    }
+
+    private List<Score> loadScores() {
+        List<Score> scores = new ArrayList<>();
+        Path path = Path.of("scores.txt");
+
+        if (!Files.exists(path)) return scores;
+
+        try {
+            List<String> lines = Files.readAllLines(path);
+            for (String line : lines) {
+                String[] parts = line.split(";");
+                if (parts.length == 3) {
+                    scores.add(new Score(parts[0], parts[1], Integer.parseInt(parts[2])));
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Erro a ler scores: " + e.getMessage());
+        }
+
+        return scores;
+    }
+
+    private void saveScores(List<Score> scores) {
+        try (PrintWriter out = new PrintWriter("scores.txt")) {
+            for (Score s : scores) {
+                out.println(s.getPlayerName() + ";" + s.getLevelName() + ";" + s.getMoves());
+            }
+        } catch (IOException e) {
+            System.err.println("Erro a guardar scores: " + e.getMessage());
+        }
+    }
+
+
+
+
+    @Override
+    public void modelUpdated() {
+        drawBoard();
+    }
+
 
 }

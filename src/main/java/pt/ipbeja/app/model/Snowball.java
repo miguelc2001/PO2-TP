@@ -66,4 +66,7 @@ public class Snowball extends MobileElement {
         return size;
     }
 
+    public void setSize(SnowballSize newSize) {
+        this.size = newSize;
+    }
 }

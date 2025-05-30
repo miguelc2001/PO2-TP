@@ -7,4 +7,7 @@ public interface ViewObserver {
     void gameOver();
 
     void monsterMoved(Position from, Direction direction);
+
+    void modelUpdated();
+
 }

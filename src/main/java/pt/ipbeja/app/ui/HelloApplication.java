@@ -3,7 +3,6 @@ package pt.ipbeja.app.ui;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import pt.ipbeja.app.ui.View;
 
 public class HelloApplication extends Application {
 
