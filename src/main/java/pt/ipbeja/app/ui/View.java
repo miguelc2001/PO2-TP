@@ -334,9 +334,33 @@ public class View extends VBox implements ViewObserver {
         dialog.setHeaderText("Introduz o teu nome (máx. 3 caracteres):");
         dialog.setContentText("Nome:");
 
-        Optional<String> result = dialog.showAndWait();
-        return result.map(s -> s.length() > 3 ? s.substring(0, 3) : s).orElse("???");
+        while (true) {
+            Optional<String> result = dialog.showAndWait();
+            if (result.isPresent()) {
+                String name = result.get().trim();
+
+                if (name.isEmpty()) {
+                    showError("O nome não pode estar vazio.");
+                } else if (name.length() > 3) {
+                    showError("O nome deve ter no máximo 3 caracteres.");
+                } else {
+                    return name.toUpperCase(); // devolver nome válido em maiúsculas
+                }
+            } else {
+                // utilizador cancelou -> usar valor por defeito
+                return "???";
+            }
+        }
     }
+
+    private void showError(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Erro");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
 
     private void updateScorePanel(Score currentScore) {
         List<Score> topScores = loadScores();
