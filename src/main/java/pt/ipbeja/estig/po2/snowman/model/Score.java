@@ -1,4 +1,4 @@
-package pt.ipbeja.app.model;
+package pt.ipbeja.estig.po2.snowman.model;
 
 public class Score implements Comparable<Score> {
     private final String playerName;
@@ -25,7 +25,7 @@ public class Score implements Comparable<Score> {
 
     @Override
     public int compareTo(Score other) {
-        return this.moves - other.moves; // menor número = melhor
+        return this.moves - other.moves;
     }
 
     @Override

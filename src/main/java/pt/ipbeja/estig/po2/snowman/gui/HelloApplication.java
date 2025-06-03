@@ -1,4 +1,4 @@
-package pt.ipbeja.app.ui;
+package pt.ipbeja.estig.po2.snowman.gui;
 
 import javafx.application.Application;
 import javafx.scene.Scene;

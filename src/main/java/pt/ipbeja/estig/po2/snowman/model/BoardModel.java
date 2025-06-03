@@ -1,8 +1,7 @@
-package pt.ipbeja.app.model;
+package pt.ipbeja.estig.po2.snowman.model;
 
-import javafx.application.Platform;
-import pt.ipbeja.app.ui.View;
-import pt.ipbeja.app.ui.ViewObserver;
+import pt.ipbeja.estig.po2.snowman.gui.View;
+import pt.ipbeja.estig.po2.snowman.gui.ViewObserver;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -29,11 +28,9 @@ public class BoardModel {
         // Save current board
         saveSnapshot();
 
-
         // Get the current position of the monster
         Position monsterPosition = monster.getPosition();
         Position targetPosition = monsterPosition.newPosition(direction);
-
 
         // Check if the target position is within bounds and not a BLOCK
         if (outOfBounds(targetPosition) || isBlocked(targetPosition)) {
@@ -42,89 +39,102 @@ public class BoardModel {
 
         Snowball snowball = getSnowball(targetPosition);
 
-//        if (snowball != null && snowball.isStacked()) {
-//            return; // não permite empurrar bolas empilhadas
-//        }
-
-        if (snowball != null) {
-            SnowballSize size = snowball.getSize();
-
-            // Trata os casos em que só o topo pode ser empurrado
-            if (size == SnowballSize.BIG_SMALL || size == SnowballSize.AVERAGE_SMALL || size == SnowballSize.BIG_AVERAGE) {
-                Position newPos = targetPosition.newPosition(direction);
-                if (outOfBounds(newPos) || isBlocked(newPos) || getSnowball(newPos) != null) return;
-
-                SnowballSize top = switch (size) {
-                    case BIG_SMALL, AVERAGE_SMALL -> SnowballSize.SMALL;
-                    case BIG_AVERAGE -> SnowballSize.AVERAGE;
-                    default -> throw new IllegalStateException("Unexpected size");
-                };
-
-                SnowballSize base = switch (size) {
-                    case BIG_SMALL, BIG_AVERAGE -> SnowballSize.BIG;
-                    case AVERAGE_SMALL -> SnowballSize.AVERAGE;
-                    default -> throw new IllegalStateException("Unexpected size");
-                };
-
-                Snowball topBall = new Snowball(newPos, top);
-                if (getPositionContent(newPos) == PositionContent.SNOW) {
-                    topBall.grow();
-                    board.get(newPos.getRow()).set(newPos.getCol(), PositionContent.NO_SNOW);
-                }
-
-                snowball.setSize(base);
-                snowballs.add(topBall);
-
-                return;
-            }
-        }
-
-
-
         if (snowball != null) {
             Position newPosition = targetPosition.newPosition(direction);
 
+            // Unstacks the snowballs if they are stacked
+            if (snowballUnstack(direction, snowball, targetPosition)) return;
+
+            // Moves or stacks the snowballs
+            if (snowballMoveStack(newPosition, snowball)) return;
+
+            // Checks if the new position for the snowball is not blocked or out of bounds
             if (outOfBounds(newPosition) || isBlocked(newPosition)) {
                 return;
             }
-
-
-            Snowball snowball1 = getSnowball(newPosition);
-            if (snowball1 != null) {
-                if (snowball1.canReceive(snowball)) {
-                    snowball1.stack(snowball);
-                    if (snowball1.getSize() == SnowballSize.BIG_AVERAGE_SMALL) {
-                        board.get(newPosition.getRow()).set(newPosition.getCol(), PositionContent.SNOWMAN);
-                        if (snowball1.getSize() == SnowballSize.BIG_AVERAGE_SMALL) {
-                            board.get(newPosition.getRow()).set(newPosition.getCol(), PositionContent.SNOWMAN);
-
-                            if (viewObserver != null) {
-                                ((View) viewObserver).saveToFile(newPosition);
-                                viewObserver.gameOver();
-                            }
-                        }
-
-                    }
-                    snowballs.remove(snowball);
-                }
-                else return;
-
-            } else {
-                snowball.setPosition(newPosition);
-                if (getPositionContent(newPosition) == PositionContent.SNOW) {
-                    snowball.grow();
-                    board.get(newPosition.getRow()).set(newPosition.getCol(), PositionContent.NO_SNOW);
-                }
-            }
-
         }
 
+        // Tell the observer that the monster has moved
         if (viewObserver != null) {
             viewObserver.monsterMoved(monster.getPosition(), direction);
         }
 
-        // Move o monstro para a posição (bola foi empurrada ou célula estava livre)
+        // Moves the monster to the targetPosition
         monster.setPosition(targetPosition);
+    }
+
+    private boolean snowballMoveStack(Position newPosition, Snowball snowball) {
+        Snowball snowball1 = getSnowball(newPosition);
+        if (snowball1 != null) {
+            if (snowball1.canReceive(snowball)) {
+
+                snowball1.stack(snowball);
+
+                if (snowball1.getSize() == SnowballSize.BIG_AVERAGE_SMALL) {
+
+                    board.get(newPosition.getRow()).set(newPosition.getCol(), PositionContent.SNOWMAN);
+
+                    if (snowball1.getSize() == SnowballSize.BIG_AVERAGE_SMALL) {
+
+                        board.get(newPosition.getRow()).set(newPosition.getCol(), PositionContent.SNOWMAN);
+
+                        if (viewObserver != null) {
+                            ((View) viewObserver).saveToFile(newPosition);
+                            viewObserver.gameOver();
+                        }
+                    }
+                }
+
+                snowballs.remove(snowball);
+
+            }
+
+            else return true;
+
+        } else {
+
+            snowball.setPosition(newPosition);
+
+            if (getPositionContent(newPosition) == PositionContent.SNOW) {
+                snowball.grow();
+                board.get(newPosition.getRow()).set(newPosition.getCol(), PositionContent.NO_SNOW);
+            }
+        }
+
+        return false;
+    }
+
+    private boolean snowballUnstack(Direction direction, Snowball snowball, Position targetPosition) {
+        SnowballSize size = snowball.getSize();
+
+        if (size == SnowballSize.BIG_SMALL || size == SnowballSize.AVERAGE_SMALL || size == SnowballSize.BIG_AVERAGE) {
+            Position newPos = targetPosition.newPosition(direction);
+            if (outOfBounds(newPos) || isBlocked(newPos) || getSnowball(newPos) != null) return true;
+
+            SnowballSize top = switch (size) {
+                case BIG_SMALL, AVERAGE_SMALL -> SnowballSize.SMALL;
+                case BIG_AVERAGE -> SnowballSize.AVERAGE;
+                default -> throw new IllegalStateException("Unexpected size");
+            };
+
+            SnowballSize base = switch (size) {
+                case BIG_SMALL, BIG_AVERAGE -> SnowballSize.BIG;
+                case AVERAGE_SMALL -> SnowballSize.AVERAGE;
+                default -> throw new IllegalStateException("Unexpected size");
+            };
+
+            Snowball topBall = new Snowball(newPos, top);
+            if (getPositionContent(newPos) == PositionContent.SNOW) {
+                topBall.grow();
+                board.get(newPos.getRow()).set(newPos.getCol(), PositionContent.NO_SNOW);
+            }
+
+            snowball.setSize(base);
+            snowballs.add(topBall);
+
+            return true;
+        }
+        return false;
     }
 
     public void setViewObserver(ViewObserver viewObserver) {
@@ -174,9 +184,6 @@ public class BoardModel {
         }
     }
 
-
-
-
     public Snowball getSnowball(Position position) {
         for (Snowball snowball : snowballs) {
             if (snowball.getPosition().equals(position)) return snowball;
@@ -184,17 +191,12 @@ public class BoardModel {
         return null;
     }
 
-
     public PositionContent getPositionContent(Position position) {
         return board.get(position.getRow()).get(position.getCol());
     }
 
     public Monster getMonster() {
         return monster;
-    }
-
-    public List<Snowball> getSnowballs() {
-        return snowballs;
     }
 
     public List<List<PositionContent>> getBoard() {

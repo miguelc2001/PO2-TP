@@ -1,12 +1,11 @@
 package pt.ipbeja.po2.app.model;
 
-import javafx.geometry.Pos;
 import org.junit.jupiter.api.Test;
-import pt.ipbeja.app.model.Direction;
-import pt.ipbeja.app.model.Monster;
-import pt.ipbeja.app.model.Position;
-import pt.ipbeja.app.model.Snowball;
-import pt.ipbeja.app.model.SnowballSize;
+import pt.ipbeja.estig.po2.snowman.model.Direction;
+import pt.ipbeja.estig.po2.snowman.model.Monster;
+import pt.ipbeja.estig.po2.snowman.model.Position;
+import pt.ipbeja.estig.po2.snowman.model.Snowball;
+import pt.ipbeja.estig.po2.snowman.model.SnowballSize;
 
 import static org.junit.jupiter.api.Assertions.*;
 

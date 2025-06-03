@@ -1,7 +1,6 @@
-package pt.ipbeja.app.ui;
+package pt.ipbeja.estig.po2.snowman.gui;
 
 import javafx.application.Platform;
-import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
@@ -9,12 +8,10 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
-import pt.ipbeja.app.model.*;
+import pt.ipbeja.estig.po2.snowman.model.*;
 
 import javafx.scene.image.ImageView;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -32,7 +29,7 @@ import javax.sound.sampled.*;
 public class View extends VBox implements ViewObserver {
 
     private BoardModel model;
-    private Label monsterLabel;
+//    private Label monsterLabel;
     private GridPane boardPane = new GridPane();
     private TextArea moveHistory = new TextArea();
     private Clip music;
@@ -67,7 +64,7 @@ public class View extends VBox implements ViewObserver {
             if (event.getCode() == KeyCode.LEFT) model.moveMonster(Direction.LEFT);
             if (event.getCode() == KeyCode.RIGHT) model.moveMonster(Direction.RIGHT);
             if (event.getCode() == KeyCode.Z) model.undo();
-            if (event.getCode() == KeyCode.Y) model.redo();
+            if (event.getCode() == KeyCode.X) model.redo();
 
             drawBoard();
         });
@@ -90,7 +87,7 @@ public class View extends VBox implements ViewObserver {
         String[] layout = {
                 "+++++++++",
                 "+_....._+",
-                "+_______+",
+                "+_+++___+",
                 "+_s._a__+",
                 "+_____s_+",
                 "+_______+",
