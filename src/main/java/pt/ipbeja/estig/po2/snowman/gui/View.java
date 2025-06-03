@@ -24,6 +24,11 @@ import java.util.List;
 import java.util.Optional;
 import javax.sound.sampled.*;
 
+import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
+import java.util.function.UnaryOperator;
+
+
 
 
 public class View extends VBox implements ViewObserver {
@@ -331,32 +336,40 @@ public class View extends VBox implements ViewObserver {
         dialog.setHeaderText("Introduz o teu nome (máx. 3 caracteres):");
         dialog.setContentText("Nome:");
 
+        // Limita o input a 3 caracteres
+        TextField editor = dialog.getEditor();
+        UnaryOperator<TextFormatter.Change> filter = change -> {
+            String newText = change.getControlNewText();
+            return newText.length() <= 3 ? change : null;
+        };
+        editor.setTextFormatter(new TextFormatter<>(filter));
+
         while (true) {
             Optional<String> result = dialog.showAndWait();
             if (result.isPresent()) {
                 String name = result.get().trim();
-
                 if (name.isEmpty()) {
                     showError("O nome não pode estar vazio.");
-                } else if (name.length() > 3) {
-                    showError("O nome deve ter no máximo 3 caracteres.");
                 } else {
-                    return name.toUpperCase(); // devolver nome válido em maiúsculas
+                    return name.toUpperCase();
                 }
             } else {
-                // utilizador cancelou -> usar valor por defeito
-                return "???";
+                // Cancelado → fechar o jogo
+                Platform.exit();
+                return null; // opcional (linha nunca executada, mas necessário para compilar)
             }
         }
     }
 
-    private void showError(String message) {
+
+    private void showError(String msg) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Erro");
         alert.setHeaderText(null);
-        alert.setContentText(message);
+        alert.setContentText(msg);
         alert.showAndWait();
     }
+
 
 
     private void updateScorePanel(Score currentScore) {
