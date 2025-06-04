@@ -1,84 +1,104 @@
 package pt.ipbeja.po2.app.model;
 
 import org.junit.jupiter.api.Test;
-import pt.ipbeja.estig.po2.snowman.model.Direction;
-import pt.ipbeja.estig.po2.snowman.model.Monster;
-import pt.ipbeja.estig.po2.snowman.model.Position;
-import pt.ipbeja.estig.po2.snowman.model.Snowball;
-import pt.ipbeja.estig.po2.snowman.model.SnowballSize;
+import pt.ipbeja.estig.po2.snowman.model.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TestTP {
 
+
+
     @Test
     public void testMonsterToTheLeft() {
-        Position position = new Position(3, 3);
-        Monster monster = new Monster(position);
+        BoardModel boardModel = BoardModel.createBoard("/testLevels/test1.txt");
+        Position monsterPosition = boardModel.getMonster().getPosition();
 
-        monster.move(Direction.LEFT);
+        boardModel.moveMonster(Direction.LEFT);
 
-        assertEquals(3, position.getRow());
-        assertEquals(2, position.getCol());
+        Position newMonsterPosition = boardModel.getMonster().getPosition();
 
+        assertEquals(monsterPosition.getRow(), newMonsterPosition.getRow());
+        assertEquals(monsterPosition.getCol() - 1, newMonsterPosition.getCol());
     }
 
     @Test
     public void testCreateAverageSnowball() {
-        Position position = new Position(3, 3);
-        Snowball snowball = new Snowball(position, SnowballSize.SMALL);
+        BoardModel boardModel = BoardModel.createBoard("/testLevels/test2.txt");
 
-        snowball.grow();
+        boardModel.moveMonster(Direction.RIGHT);
 
-        assertEquals(SnowballSize.AVERAGE, snowball.getSize());
+        Snowball movedSnowball = boardModel.getSnowball(new Position(1, 3));
+        assertEquals(SnowballSize.AVERAGE, movedSnowball.getSize());
+
     }
 
     @Test
     public void testCreateBigSnowball() {
-        Position position = new Position(3, 3);
-        Snowball snowball = new Snowball(position, SnowballSize.AVERAGE);
+        BoardModel boardModel = BoardModel.createBoard("/testLevels/test2.txt");
 
-        snowball.grow();
+        boardModel.moveMonster(Direction.RIGHT);
+        boardModel.moveMonster(Direction.RIGHT);
 
-        assertEquals(SnowballSize.BIG, snowball.getSize());
+        Snowball movedSnowball = boardModel.getSnowball(new Position(1, 4));
+        assertEquals(SnowballSize.BIG, movedSnowball.getSize());
     }
 
     @Test
     public void testMaintainBigSnowball() {
-        Position position = new Position(3, 3);
-        Snowball snowball = new Snowball(position, SnowballSize.BIG);
+        BoardModel boardModel = BoardModel.createBoard("/testLevels/test2.txt");
 
-        snowball.grow();
+        boardModel.moveMonster(Direction.RIGHT);
+        boardModel.moveMonster(Direction.RIGHT);
+        boardModel.moveMonster(Direction.RIGHT);
 
-        assertEquals(SnowballSize.BIG, snowball.getSize());
+        Snowball movedSnowball = boardModel.getSnowball(new Position(1, 5));
+        assertEquals(SnowballSize.BIG, movedSnowball.getSize());
     }
 
     @Test
     public void testAverageBigSnowball() {
-        Position position = new Position(3, 3);
-        Snowball snowball = new Snowball(position, SnowballSize.BIG);
+        BoardModel boardModel = BoardModel.createBoard("/testLevels/test3.txt");
 
-        Position position2 = new Position(3, 4);
-        Snowball snowball2 = new Snowball(position2, SnowballSize.AVERAGE);
+        boardModel.moveMonster(Direction.RIGHT);
 
-        snowball.stack(snowball2);
-
-        assertEquals(SnowballSize.BIG_AVERAGE, snowball.getSize());
+        Snowball movedSnowball = boardModel.getSnowball(new Position(1, 3));
+        assertEquals(SnowballSize.BIG_AVERAGE, movedSnowball.getSize());
 
     }
 
     @Test
     public void testCompleteSnowman() {
-        Position position = new Position(3, 3);
-        Snowball snowball = new Snowball(position, SnowballSize.BIG_AVERAGE);
+        BoardModel boardModel = BoardModel.createBoard("/testLevels/test4.txt");
 
-        Position position2 = new Position(3, 4);
-        Snowball snowball2 = new Snowball(position2, SnowballSize.SMALL);
+        boardModel.moveMonster(Direction.RIGHT);
 
-        snowball.stack(snowball2);
-
-        assertEquals(SnowballSize.BIG_AVERAGE_SMALL, snowball.getSize());
+        Snowball movedSnowball = boardModel.getSnowball(new Position(1, 3));
+        assertEquals(SnowballSize.BIG_AVERAGE_SMALL, movedSnowball.getSize());
 
     }
 
+    @Test
+    public void testMoveToBlockedPosition() {
+        BoardModel boardModel = BoardModel.createBoard("/testLevels/test1.txt");
+        Position initialMonsterPosition = boardModel.getMonster().getPosition();
+
+        boardModel.moveMonster(Direction.UP);
+
+        Position newMonsterPosition = boardModel.getMonster().getPosition();
+        assertEquals(initialMonsterPosition.getRow(), newMonsterPosition.getRow());
+        assertEquals(initialMonsterPosition.getCol(), newMonsterPosition.getCol());
+    }
+
+    @Test
+    public void testUnstackSnowball() {
+        BoardModel boardModel = BoardModel.createBoard("/testLevels/test5.txt");
+
+        boardModel.moveMonster(Direction.RIGHT);
+
+        Snowball baseSnowball = boardModel.getSnowball(new Position(1, 2));
+        Snowball movedSnowball = boardModel.getSnowball(new Position(1, 3));
+        assertEquals(SnowballSize.BIG, baseSnowball.getSize());
+        assertEquals(SnowballSize.AVERAGE, movedSnowball.getSize());
+    }
 }

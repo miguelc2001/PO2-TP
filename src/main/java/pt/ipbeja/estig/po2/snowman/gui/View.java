@@ -28,42 +28,37 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import java.util.function.UnaryOperator;
 
-
-
-
 public class View extends VBox implements ViewObserver {
 
     private BoardModel model;
-//    private Label monsterLabel;
     private GridPane boardPane = new GridPane();
     private TextArea moveHistory = new TextArea();
     private Clip music;
 
     private String playerName;
-    private final String levelName = "Nível 1"; // por agora, hardcoded
+
+    private String currentLevel = "/levels/level1.txt";
+
+    private final List<String> levels = List.of("/levels/level1.txt", "/levels/level2.txt", "/levels/level3.txt");
+    private int currentLevelIndex = 0;
 
     VBox scorePanel = new VBox();
 
-
     private final int CELL_SIZE = 64;
-
 
     public View() {
 
         this.playerName = askPlayerName();
 
-
-        this.model = createBoard();
+        this.model = BoardModel.createBoard(currentLevel);
         this.model.setViewObserver(this);
         this.setFocusTraversable(true);
         this.setSpacing(10);
 
         moveHistory.setEditable(false);
-        moveHistory.setPrefHeight(100);
+        moveHistory.setPrefHeight(200);
 
         this.setOnKeyPressed(event -> {
-//            System.out.println("Tecla: " + event.getCode());
-
             if (event.getCode() == KeyCode.UP) model.moveMonster(Direction.UP);
             if (event.getCode() == KeyCode.DOWN) model.moveMonster(Direction.DOWN);
             if (event.getCode() == KeyCode.LEFT) model.moveMonster(Direction.LEFT);
@@ -78,69 +73,10 @@ public class View extends VBox implements ViewObserver {
         playBackgroundMusic();
 
         HBox layout = new HBox();
+        layout.setSpacing(30);
         layout.getChildren().addAll(boardPane, scorePanel);
         this.getChildren().addAll(layout, moveHistory);
-
-
-//        this.getChildren().addAll(boardPane, moveHistory);
     }
-
-    private BoardModel createBoard(/*TODO: String layout*/) {
-        List<List<PositionContent>> board = new ArrayList<>();
-
-        // Definir o layout do tabuleiro com base em símbolos
-        String[] layout = {
-                "+++++++++",
-                "+_....._+",
-                "+_+++___+",
-                "+_s._a__+",
-                "+_____s_+",
-                "+_______+",
-                "+++++++++"
-        };
-
-        List<Snowball> snowballs = new ArrayList<>();
-        Monster monster = null;
-
-        for (int row = 0; row < layout.length; row++) {
-            List<PositionContent> rowContent = new ArrayList<>();
-            for (int col = 0; col < layout[row].length(); col++) {
-                char tile = layout[row].charAt(col);
-                Position pos = new Position(row, col);
-
-                switch (tile) {
-                    case '_' -> rowContent.add(PositionContent.SNOW);
-                    case '+' -> rowContent.add(PositionContent.BLOCK);
-                    case 's' -> {
-                        rowContent.add(PositionContent.NO_SNOW);
-                        snowballs.add(new Snowball(pos, SnowballSize.SMALL));
-                    }
-                    case 'a' -> {
-                        rowContent.add(PositionContent.NO_SNOW);
-                        snowballs.add(new Snowball(pos, SnowballSize.AVERAGE));
-                    }
-                    case 'b' -> {
-                        rowContent.add(PositionContent.NO_SNOW);
-                        snowballs.add(new Snowball(pos, SnowballSize.BIG));
-                    }
-                    case 'M' -> {
-                        rowContent.add(PositionContent.NO_SNOW);
-                        monster = new Monster(pos);
-                    }
-                    default -> rowContent.add(PositionContent.NO_SNOW);
-                }
-            }
-            board.add(rowContent);
-        }
-
-
-        if (monster == null) {
-            monster = new Monster(new Position(board.size() / 2, board.get(0).size() / 2));
-        }
-
-        return new BoardModel(board, monster, snowballs);
-    }
-
 
     private void drawBoard() {
         boardPane.getChildren().clear();
@@ -201,7 +137,7 @@ public class View extends VBox implements ViewObserver {
     public void gameOver() {
 
         int moveCount = (int) moveHistory.getText().lines().count();
-        Score currentScore = new Score(playerName, levelName, moveCount);
+        Score currentScore = new Score(playerName, BoardModel.getLevelName(currentLevel), moveCount);
         updateScorePanel(currentScore);
 
         music.stop();
@@ -230,18 +166,27 @@ public class View extends VBox implements ViewObserver {
     }
 
     private void restartCurrentLevel() {
-        this.model = createBoard();
+        moveHistory.clear();
+        scorePanel.getChildren().clear();
+        this.model = BoardModel.createBoard(currentLevel);
         this.model.setViewObserver(this);
         drawBoard();
         playBackgroundMusic();
     }
 
     private void loadNextLevel() {
-        // TODO: PROXIMO NÍVEL
-        this.model = createBoard();
-        this.model.setViewObserver(this);
-        drawBoard();
-        playBackgroundMusic();
+        moveHistory.clear();
+        scorePanel.getChildren().clear();
+        if (currentLevelIndex < levels.size() - 1) {
+            currentLevelIndex++;
+            currentLevel = levels.get(currentLevelIndex);
+            model = BoardModel.createBoard(currentLevel);
+            model.setViewObserver(this);
+            drawBoard();
+            playBackgroundMusic();
+        } else {
+            showError("Não há mais níveis disponíveis.");
+        }
     }
 
     @Override
@@ -285,18 +230,15 @@ public class View extends VBox implements ViewObserver {
         String fileName = "snowman" + timestamp + ".txt";
 
         try (PrintWriter writer = new PrintWriter(fileName)) {
-            // 1. Mapa utilizado
+            // 1. Mapa utilizado (original)
             writer.println("Mapa:");
-            for (List<PositionContent> row : model.getBoard()) {
-                for (PositionContent pc : row) {
-                    writer.print(switch (pc) {
-                        case SNOW -> "_";
-                        case NO_SNOW -> ".";
-                        case BLOCK -> "+";
-                        case SNOWMAN -> "☃";
-                    });
+            try (var is = getClass().getResourceAsStream(currentLevel);
+                 var reader = new java.io.BufferedReader(new java.io.InputStreamReader(is))) {
+                reader.readLine(); // skip level name
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    writer.println(line);
                 }
-                writer.println();
             }
 
             // 2. Conteúdo do painel de jogadas
@@ -374,30 +316,49 @@ public class View extends VBox implements ViewObserver {
 
     private void updateScorePanel(Score currentScore) {
         List<Score> topScores = loadScores();
-        topScores.add(currentScore);
-        topScores.sort(Comparator.naturalOrder());
-
-        if (topScores.size() > 3) {
-            topScores = topScores.subList(0, 3);
+        if (currentScore != null) {
+            topScores.add(currentScore);
+            topScores.sort(Comparator.naturalOrder());
+            if (topScores.size() > 3) {
+                topScores = topScores.subList(0, 3);
+            }
+            saveScores(topScores);
         }
-
-        saveScores(topScores);
 
         scorePanel.getChildren().clear();
-        scorePanel.getChildren().add(new Label("Pontuação atual:"));
-        for (Score s : topScores) {
-            String text = s.toString();
-            if (s.getPlayerName().equals(currentScore.getPlayerName())
-                    && s.getMoves() == currentScore.getMoves()) {
-                text += "  TOP";
-            }
-            scorePanel.getChildren().add(new Label(text));
+
+        // 1. Show current game score
+        if (currentScore != null) {
+            scorePanel.getChildren().add(new Label("Current score: " + currentScore.getPlayerName() +
+                    " - " + currentScore.getMoves() + " moves"));
         }
+
+        // 2. Show level name
+        String levelName = BoardModel.getLevelName(currentLevel);
+        scorePanel.getChildren().add(new Label("Level: " + levelName));
+        scorePanel.getChildren().add(new Label("Top 3 players:"));
+
+        // 3. Show top 3 players
+        for (Score s : topScores) {
+            String label = s.getPlayerName() + " - " + s.getMoves() + " moves";
+            if (currentScore != null &&
+                    s.getPlayerName().equals(currentScore.getPlayerName()) &&
+                    s.getMoves() == currentScore.getMoves()) {
+                label += " TOP";
+            }
+            scorePanel.getChildren().add(new Label(label));
+        }
+    }
+
+    private String getScoreFileName() {
+        String levelName = BoardModel.getLevelName(currentLevel);
+        String safeLevelName = levelName.replaceAll("[^a-zA-Z0-9]", "_");
+        return "scores_" + safeLevelName + ".txt";
     }
 
     private List<Score> loadScores() {
         List<Score> scores = new ArrayList<>();
-        Path path = Path.of("scores.txt");
+        Path path = Path.of(getScoreFileName());
 
         if (!Files.exists(path)) return scores;
 
@@ -417,7 +378,7 @@ public class View extends VBox implements ViewObserver {
     }
 
     private void saveScores(List<Score> scores) {
-        try (PrintWriter out = new PrintWriter("scores.txt")) {
+        try (PrintWriter out = new PrintWriter(getScoreFileName())) {
             for (Score s : scores) {
                 out.println(s.getPlayerName() + ";" + s.getLevelName() + ";" + s.getMoves());
             }

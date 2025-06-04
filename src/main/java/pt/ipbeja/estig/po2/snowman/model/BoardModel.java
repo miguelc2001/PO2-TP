@@ -3,7 +3,12 @@ package pt.ipbeja.estig.po2.snowman.model;
 import pt.ipbeja.estig.po2.snowman.gui.View;
 import pt.ipbeja.estig.po2.snowman.gui.ViewObserver;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
@@ -23,7 +28,105 @@ public class BoardModel {
         this.snowballs = snowballs;
     }
 
+    public static BoardModel createBoard(String level) {
+        List<List<PositionContent>> board = new ArrayList<>();
+
+        // Definir o layout do tabuleiro com base em símbolos
+        String[] layout = loadLayoutFromFile(level);
+
+        List<Snowball> snowballs = new ArrayList<>();
+        Monster monster = null;
+
+        for (int row = 0; row < layout.length; row++) {
+            List<PositionContent> rowContent = new ArrayList<>();
+            for (int col = 0; col < layout[row].length(); col++) {
+                char tile = layout[row].charAt(col);
+                Position pos = new Position(row, col);
+
+                switch (tile) {
+                    case '_' -> rowContent.add(PositionContent.SNOW);
+                    case '+' -> rowContent.add(PositionContent.BLOCK);
+                    case 's' -> {
+                        rowContent.add(PositionContent.NO_SNOW);
+                        snowballs.add(new Snowball(pos, SnowballSize.SMALL));
+                    }
+                    case 'a' -> {
+                        rowContent.add(PositionContent.NO_SNOW);
+                        snowballs.add(new Snowball(pos, SnowballSize.AVERAGE));
+                    }
+                    case 'b' -> {
+                        rowContent.add(PositionContent.NO_SNOW);
+                        snowballs.add(new Snowball(pos, SnowballSize.BIG));
+                    }
+                    case 'X' -> {
+                        rowContent.add(PositionContent.NO_SNOW);
+                        snowballs.add(new Snowball(pos, SnowballSize.BIG_AVERAGE));
+                    }
+                    case 'Y' -> {
+                        rowContent.add(PositionContent.NO_SNOW);
+                        snowballs.add(new Snowball(pos, SnowballSize.AVERAGE_SMALL));
+                    }
+                    case 'Z' -> {
+                        rowContent.add(PositionContent.NO_SNOW);
+                        snowballs.add(new Snowball(pos, SnowballSize.BIG_SMALL));
+                    }
+                    case 'M' -> {
+                        rowContent.add(PositionContent.NO_SNOW);
+                        monster = new Monster(pos);
+                    }
+                    default -> rowContent.add(PositionContent.NO_SNOW);
+                }
+            }
+            board.add(rowContent);
+        }
+
+
+        if (monster == null) {
+            monster = new Monster(new Position(board.size() / 2, board.get(0).size() / 2));
+        }
+
+        return new BoardModel(board, monster, snowballs);
+    }
+
+    private static String[] loadLayoutFromFile(String resourcePath) {
+        List<String> lines = new ArrayList<>();
+
+        try (InputStream is = BoardModel.class.getResourceAsStream(resourcePath);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+
+            // Skip da linha que contém o nome do nível
+            reader.readLine();
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                lines.add(line);
+            }
+
+        } catch (IOException | NullPointerException e) {
+            System.err.println("Erro ao ler o ficheiro de layout: " + resourcePath);
+            e.printStackTrace();
+        }
+
+        return lines.toArray(new String[0]);
+    }
+
+    public static String getLevelName(String level) {
+            try (InputStream is = BoardModel.class.getResourceAsStream(level);
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+                return reader.readLine();
+            } catch (IOException | NullPointerException e) {
+                System.err.println("Error reading level name from: " + level);
+                e.printStackTrace();
+                return null;
+            }
+        }
+
     public void moveMonster(Direction direction) {
+
+        // Tell the observer that the monster has moved
+        if (viewObserver != null) {
+            viewObserver.monsterMoved(monster.getPosition(), direction);
+        }
 
         // Save current board
         saveSnapshot();
@@ -54,10 +157,7 @@ public class BoardModel {
             }
         }
 
-        // Tell the observer that the monster has moved
-        if (viewObserver != null) {
-            viewObserver.monsterMoved(monster.getPosition(), direction);
-        }
+
 
         // Moves the monster to the targetPosition
         monster.setPosition(targetPosition);
@@ -204,5 +304,7 @@ public class BoardModel {
     }
 
 
-
+    public List<Snowball> getSnowballs() {
+        return snowballs;
+    }
 }

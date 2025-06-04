@@ -9,7 +9,7 @@ public class HelloApplication extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         View view = new View();
-        Scene scene = new Scene(view, 800, 800);
+        Scene scene = new Scene(view, 900, 800);
         stage.setScene(scene);
         stage.setTitle("A Good Snowman Is Hard To Build");
         stage.show();
