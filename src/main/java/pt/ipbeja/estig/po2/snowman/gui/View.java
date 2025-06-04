@@ -72,10 +72,19 @@ public class View extends VBox implements ViewObserver {
         drawBoard();
         playBackgroundMusic();
 
-        HBox layout = new HBox();
+        HBox topBox = new HBox();
+        topBox.setSpacing(20);
+        topBox.getChildren().addAll(boardPane, scorePanel);
+
+        HBox bottomBox = new HBox();
+        bottomBox.setSpacing(20);
+        bottomBox.getChildren().addAll(moveHistory, showKeybinds());
+
+        VBox layout = new VBox();
         layout.setSpacing(30);
-        layout.getChildren().addAll(boardPane, scorePanel);
-        this.getChildren().addAll(layout, moveHistory);
+        layout.getChildren().addAll(topBox, bottomBox);
+
+        this.getChildren().add(layout);
     }
 
     private void drawBoard() {
@@ -147,11 +156,12 @@ public class View extends VBox implements ViewObserver {
             alert.setHeaderText("Parabéns! Construíste o boneco de neve completo!");
             alert.setContentText("O que pretendes fazer a seguir?");
 
-            ButtonType retryButton = new ButtonType("Recomeçar");
-            ButtonType nextLevelButton = new ButtonType("Próximo nível");
-            ButtonType cancelButton = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
 
-            alert.getButtonTypes().setAll(retryButton, nextLevelButton, cancelButton);
+            ButtonType nextLevelButton = new ButtonType("Próximo nível");
+            ButtonType retryButton = new ButtonType("Recomeçar");
+            ButtonType exitButton = new ButtonType("Sair", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+            alert.getButtonTypes().setAll(nextLevelButton, retryButton, exitButton);
 
             Optional<ButtonType> result = alert.showAndWait();
 
@@ -385,6 +395,16 @@ public class View extends VBox implements ViewObserver {
         } catch (IOException e) {
             System.err.println("Erro a guardar scores: " + e.getMessage());
         }
+    }
+
+    private VBox showKeybinds() {
+        VBox keybinds = new VBox();
+        keybinds.setSpacing(10);
+        keybinds.getChildren().add(new Label("Controlos:"));
+        keybinds.getChildren().add(new Label("↑, ↓, ←, → : Mover o monstro"));
+        keybinds.getChildren().add(new Label("Z: Desfazer jogada"));
+        keybinds.getChildren().add(new Label("X: Refazer jogada"));
+        return keybinds;
     }
 
 
