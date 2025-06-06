@@ -8,10 +8,12 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import pt.ipbeja.estig.po2.snowman.model.*;
 
 import javafx.scene.image.ImageView;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -58,6 +60,15 @@ public class View extends VBox implements ViewObserver {
         moveHistory.setEditable(false);
         moveHistory.setPrefHeight(200);
 
+        Button restartButton = new Button("Recomeçar");
+        restartButton.setOnAction(event -> restartCurrentLevel());
+
+        Button loadMapButton = new Button("Carregar Mapa");
+        loadMapButton.setOnAction(event -> loadMap());
+
+        Button exitButton = new Button("Sair");
+        exitButton.setOnAction(event -> Platform.exit());
+
         this.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.UP) model.moveMonster(Direction.UP);
             if (event.getCode() == KeyCode.DOWN) model.moveMonster(Direction.DOWN);
@@ -80,9 +91,13 @@ public class View extends VBox implements ViewObserver {
         bottomBox.setSpacing(20);
         bottomBox.getChildren().addAll(moveHistory, showKeybinds());
 
+        HBox buttons = new HBox();
+        buttons.setSpacing(20);
+        buttons.getChildren().addAll(restartButton, loadMapButton, exitButton);
+
         VBox layout = new VBox();
         layout.setSpacing(30);
-        layout.getChildren().addAll(topBox, bottomBox);
+        layout.getChildren().addAll(topBox, bottomBox, buttons);
 
         this.getChildren().add(layout);
     }
@@ -170,18 +185,23 @@ public class View extends VBox implements ViewObserver {
                     restartCurrentLevel();
                 } else if (result.get() == nextLevelButton) {
                     loadNextLevel();
+                } else if (result.get() == exitButton) {
+                    Platform.exit();
                 }
             }
         });
     }
 
     private void restartCurrentLevel() {
+        music.stop();
         moveHistory.clear();
         scorePanel.getChildren().clear();
+
         this.model = BoardModel.createBoard(currentLevel);
         this.model.setViewObserver(this);
         drawBoard();
         playBackgroundMusic();
+        this.requestFocus();
     }
 
     private void loadNextLevel() {
@@ -199,7 +219,32 @@ public class View extends VBox implements ViewObserver {
         }
     }
 
-    @Override
+    private void loadMap() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select Map File");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text Files", "*.txt"));
+
+        File initialDir = new File("src/main/resources/levels");
+        if (initialDir.exists() && initialDir.isDirectory()) {
+            fileChooser.setInitialDirectory(initialDir);
+        }
+
+        File file = fileChooser.showOpenDialog(this.getScene().getWindow());
+        if (file != null) {
+            // Only allow files inside src/main/resources/levels
+            String absPath = file.getAbsolutePath().replace("\\", "/");
+            String projectPath = new File("").getAbsolutePath().replace("\\", "/");
+            String resourcePrefix = projectPath + "/src/main/resources";
+            if (absPath.startsWith(resourcePrefix)) {
+                String resourcePath = absPath.substring(resourcePrefix.length());
+                currentLevel = resourcePath;
+                restartCurrentLevel();
+            } else {
+                showError("Only maps inside the resources/levels folder can be loaded.");
+            }
+        }
+    }
+
     public void monsterMoved(Position from, Direction direction) {
         Position to = from.newPosition(direction);
         String moveText = String.format("(%d, %s) -> (%d, %s)",
@@ -402,8 +447,8 @@ public class View extends VBox implements ViewObserver {
         keybinds.setSpacing(10);
         keybinds.getChildren().add(new Label("Controlos:"));
         keybinds.getChildren().add(new Label("↑, ↓, ←, → : Mover o monstro"));
-        keybinds.getChildren().add(new Label("Z: Desfazer jogada"));
-        keybinds.getChildren().add(new Label("X: Refazer jogada"));
+        keybinds.getChildren().add(new Label("Z: Undo"));
+        keybinds.getChildren().add(new Label("X: Redo"));
         return keybinds;
     }
 

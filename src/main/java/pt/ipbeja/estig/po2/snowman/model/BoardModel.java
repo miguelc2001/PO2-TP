@@ -123,15 +123,6 @@ public class BoardModel {
 
     public void moveMonster(Direction direction) {
 
-        // Tell the observer that the monster has moved
-        if (viewObserver != null) {
-            viewObserver.monsterMoved(monster.getPosition(), direction);
-        }
-
-        // Save current board
-        saveSnapshot();
-
-        // Get the current position of the monster
         Position monsterPosition = monster.getPosition();
         Position targetPosition = monsterPosition.newPosition(direction);
 
@@ -139,6 +130,14 @@ public class BoardModel {
         if (outOfBounds(targetPosition) || isBlocked(targetPosition)) {
             return;
         }
+
+        // Tell the observer that the monster has moved
+        if (viewObserver != null) {
+            viewObserver.monsterMoved(monster.getPosition(), direction);
+        }
+
+        // Save current board
+        saveSnapshot();
 
         Snowball snowball = getSnowball(targetPosition);
 
