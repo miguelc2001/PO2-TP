@@ -1,3 +1,9 @@
+/**
+ * Autores:
+ * Afonso Freitas - 21467
+ * Miguel Correia - 21194
+ */
+
 package pt.ipbeja.estig.po2.snowman.gui;
 
 import javafx.application.Platform;
@@ -102,6 +108,11 @@ public class View extends VBox implements ViewObserver {
         this.getChildren().add(layout);
     }
 
+    /**
+     * Draws the game board on the UI.
+     * Updates the boardPane with the current state of the model.
+     * This code was generated or modified with the assistance of an AI tool (GitHub Copilot).
+     */
     private void drawBoard() {
         boardPane.getChildren().clear();
 
@@ -157,7 +168,10 @@ public class View extends VBox implements ViewObserver {
         }
     }
 
-    @Override
+    /**
+     * Handles the end of the game, shows options to the user, and updates the score panel.
+     * This code was generated or modified with the assistance of an AI tool (GitHub Copilot).
+     */
     public void gameOver() {
 
         int moveCount = (int) moveHistory.getText().lines().count();
@@ -192,11 +206,13 @@ public class View extends VBox implements ViewObserver {
         });
     }
 
+    /**
+     * Restarts the current level, clearing the move history and score panel.
+     */
     private void restartCurrentLevel() {
         music.stop();
         moveHistory.clear();
         scorePanel.getChildren().clear();
-
         this.model = BoardModel.createBoard(currentLevel);
         this.model.setViewObserver(this);
         drawBoard();
@@ -204,6 +220,9 @@ public class View extends VBox implements ViewObserver {
         this.requestFocus();
     }
 
+    /**
+     * Loads the next level if available, or shows an error if there are no more levels.
+     */
     private void loadNextLevel() {
         moveHistory.clear();
         scorePanel.getChildren().clear();
@@ -219,6 +238,11 @@ public class View extends VBox implements ViewObserver {
         }
     }
 
+    /**
+     * Loads a map file selected by the user.
+     * Only allows files inside the resources/levels folder.
+     * This code was generated or modified with the assistance of an AI tool (GitHub Copilot).
+     */
     private void loadMap() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select Map File");
@@ -245,6 +269,11 @@ public class View extends VBox implements ViewObserver {
         }
     }
 
+    /**
+     * Appends a monster move to the move history.
+     * @param from The starting position of the monster.
+     * @param direction The direction the monster moved.
+     */
     public void monsterMoved(Position from, Direction direction) {
         Position to = from.newPosition(direction);
         String moveText = String.format("(%d, %s) -> (%d, %s)",
@@ -254,10 +283,20 @@ public class View extends VBox implements ViewObserver {
         moveHistory.appendText(moveText + "\n");
     }
 
+    /**
+     * Loads an image from the resources/images folder.
+     * @param name The name of the image file.
+     * @return The loaded Image.
+     */
     private Image load(String name) {
         return new Image(getClass().getResourceAsStream("/images/" + name));
     }
 
+    /**
+     * Gets the image for a board tile based on its position.
+     * @param pos The position on the board.
+     * @return The Image for the tile.
+     */
     private Image getTileImage(Position pos) {
         return switch (model.getPositionContent(pos)) {
             case SNOW -> load("SNOW.png");
@@ -267,6 +306,11 @@ public class View extends VBox implements ViewObserver {
         };
     }
 
+    /**
+     * Gets the image for a snowball based on its size.
+     * @param size The size of the snowball.
+     * @return The Image for the snowball.
+     */
     private Image getBallImage(SnowballSize size) {
         return switch (size) {
             case SMALL -> load("SMALL.png");
@@ -279,6 +323,11 @@ public class View extends VBox implements ViewObserver {
         };
     }
 
+    /**
+     * Saves the current game state to a file.
+     * @param snowmanPosition The position where the snowman was created.
+     * This code was generated or modified with the assistance of an AI tool (GitHub Copilot).
+     */
     public void saveToFile(Position snowmanPosition) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
         String timestamp = LocalDateTime.now().format(formatter);
@@ -313,6 +362,10 @@ public class View extends VBox implements ViewObserver {
         }
     }
 
+    /**
+     * Plays the background music in a loop.
+     * This code was generated or modified with the assistance of an AI tool (GitHub Copilot).
+     */
     public void playBackgroundMusic() {
         try {
             AudioInputStream audioStream = AudioSystem.getAudioInputStream(
@@ -327,6 +380,11 @@ public class View extends VBox implements ViewObserver {
         }
     }
 
+    /**
+     * Asks the player for their name using a dialog.
+     * Limits the name to 3 characters.
+     * @return The player's name in uppercase.
+     */
     private String askPlayerName() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Nome do Jogador");
@@ -358,7 +416,10 @@ public class View extends VBox implements ViewObserver {
         }
     }
 
-
+    /**
+     * Shows an error message in a dialog.
+     * @param msg The error message to display.
+     */
     private void showError(String msg) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Erro");
@@ -368,7 +429,11 @@ public class View extends VBox implements ViewObserver {
     }
 
 
-
+    /**
+     * Updates the score panel with the current and top scores.
+     * @param currentScore The score of the current game.
+     * This code was generated or modified with the assistance of an AI tool (GitHub Copilot).
+     */
     private void updateScorePanel(Score currentScore) {
         List<Score> topScores = loadScores();
         if (currentScore != null) {
@@ -405,12 +470,22 @@ public class View extends VBox implements ViewObserver {
         }
     }
 
+    /**
+     * Gets the file name for saving scores for the current level.
+     * @return The score file name.
+     * This code was generated or modified with the assistance of an AI tool (GitHub Copilot).
+     */
     private String getScoreFileName() {
         String levelName = BoardModel.getLevelName(currentLevel);
         String safeLevelName = levelName.replaceAll("[^a-zA-Z0-9]", "_");
         return "scores_" + safeLevelName + ".txt";
     }
 
+    /**
+     * Loads the list of scores from the score file.
+     * @return A list of Score objects.
+     * This code was generated or modified with the assistance of an AI tool (GitHub Copilot).
+     */
     private List<Score> loadScores() {
         List<Score> scores = new ArrayList<>();
         Path path = Path.of(getScoreFileName());
@@ -432,6 +507,11 @@ public class View extends VBox implements ViewObserver {
         return scores;
     }
 
+    /**
+     * Saves the list of scores to the score file.
+     * @param scores The list of scores to save.
+     * This code was generated or modified with the assistance of an AI tool (GitHub Copilot).
+     */
     private void saveScores(List<Score> scores) {
         try (PrintWriter out = new PrintWriter(getScoreFileName())) {
             for (Score s : scores) {
@@ -442,6 +522,10 @@ public class View extends VBox implements ViewObserver {
         }
     }
 
+    /**
+     * Shows the keybinds for the game.
+     * @return A VBox containing the keybinds.
+     */
     private VBox showKeybinds() {
         VBox keybinds = new VBox();
         keybinds.setSpacing(10);
@@ -452,13 +536,10 @@ public class View extends VBox implements ViewObserver {
         return keybinds;
     }
 
-
-
-
-    @Override
+    /**
+     * Called when the model is updated. Redraws the board.
+     */
     public void modelUpdated() {
         drawBoard();
     }
-
-
 }
